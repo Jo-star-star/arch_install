@@ -812,6 +812,13 @@ function final_cleanup() {
 
 }
 
+function install_yay(){
+	info "Installing yay"
+	git clone https://aur.archlinux.org/yay.git
+	cd yay
+	makepkg -si
+}
+
 ##################################################################################
       ############################### MAIN ##################################
 ##################################################################################
@@ -839,6 +846,7 @@ function inside_chroot() {
     network
     login
     enable_services
+    install_yay
     chroot_cleanup
 }
 
