@@ -1,8 +1,8 @@
 #!/bin/bash
 
-pacman -Syu aria2 uboot-tools arch-install-scripts
-umount -R .chroot
-trash .chroot
+#pacman -Syu aria2 uboot-tools arch-install-scripts qemu-user-static qemu-user-static-binfmt qemu-system-arm  qemu-tools
+#umount -R .chroot
+#trash .chroot
 
 set -euo pipefail  # x for debug
 
@@ -28,7 +28,7 @@ done
 ARCH_ADMIN_UID=1995
 ARCH_CHROOT=.chroot
 ARCH_CPU_BRAND=aarch64 #aarch64
-ARCH_DISK=sdd
+ARCH_DISK=sdb
 ARCH_HOSTNAME=jopi
 ARCH_LANG=en
 ARCH_PRESET=no
@@ -187,7 +187,7 @@ function disk_btrfs_mount() {
 
     # shellcheck disable=SC2153  # not a misspelling
     info "Formatting $ARCH_DISK_ROOT_PART as btrfs"
-    mkfs.btrfs -f -L "Arch Linux" "$ARCH_DISK_ROOT_PART"
+   	mkfs.btrfs -f -L "Arch Linux" "$ARCH_DISK_ROOT_PART"
 
 
     info "Creating btrfs subvolumes"
@@ -252,7 +252,7 @@ function setup_swap() {
         mkswap "$SWAP_FILE"
     fi
 
-    #swapon "$SWAP_FILE"
+    swapon "$SWAP_FILE"
 }
 
 # ==========================================================================
@@ -300,8 +300,8 @@ function pacstrapping() {
 
     pacstrap -G -M -C "$PACSTRAP_CONF" "$ARCH_CHROOT" \
         base base-devel \
-        zsh sudo \
-        mkinitcpio btrfs-progs \
+        zsh sudo vim \
+        mkinitcpio btrfs-progs archlinuxarm-keyring \
         "$ARCH_KERNEL" "$ARCH_KERNEL-headers" linux-firmware crda \
         iptables-nft
 
@@ -411,6 +411,9 @@ EOF
     sed -E -i "s/^PKGEXT=.*/PKGEXT='.pkg.tar'/" /etc/makepkg.conf
     # shellcheck disable=SC2016  # expressions in single quotes
     sed -E -i 's/^#MAKEFLAGS=.*/MAKEFLAGS="-j$(nproc)"/' /etc/makepkg.conf
+
+        pacman-key --init
+        pacman-key --populate archlinuxarm
 
     if [ ! -d /etc/pacman.d/gnupg/ ]; then
         pacman-key --init
@@ -579,6 +582,7 @@ function bootloader(){
 
     PART_ROOT_UUID=$(blkid -o value -s UUID "$(mount | grep "on / " | cut -d ' ' -f1)")
 
+    info "Setting up pi bootloader2	"
     # Add kernel module for usb booting
     if [ -f /boot/boot.scr ]; then
         sed -i 's/^MODULES=.*/MODULES=(pcie_brcmstb)/' /etc/mkinitcpio.conf
@@ -618,6 +622,7 @@ function bootloader(){
 
 function network() {
     # Network Manager
+	info "Configuring Network"
     if [ "$(command -v nmcli)" ]; then
         info "Enabling NetworkManager"
         systemctl --quiet enable NetworkManager
@@ -785,7 +790,7 @@ function chroot_cleanup() {
 function final_cleanup() {
     if [ -n "$ARCH_SWAP" ]; then
         info 'Turning off swap'
-        #swapoff "$ARCH_CHROOT/swap/swapfile" 2>/dev/null || true
+        swapoff "$ARCH_CHROOT/swap/swapfile" 2>/dev/null || true
     fi
 
     set -euo pipefail
