@@ -812,6 +812,14 @@ function final_cleanup() {
 
 }
 
+function install_yay(){
+	info "Installing yay"
+	git clone https://aur.archlinux.org/yay.git
+	cd yay
+	makepkg -si
+	yay -Syu downgrade
+}
+
 ##################################################################################
       ############################### MAIN ##################################
 ##################################################################################
@@ -838,7 +846,12 @@ function inside_chroot() {
     bootloader
     network
     login
+    pacman -U http://tardis.tiny-vps.com/aarm/packages/s/syncthing/syncthing-1.17.0-1-aarch64.pkg.tar.xz
+    systemctl enable syncthing@myuser.service
+    systemctl start syncthing@myuser.service
     enable_services
+    install_yay
+    
     chroot_cleanup
 }
 
